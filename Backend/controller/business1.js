@@ -1,7 +1,20 @@
 import asyncHandler from "express-async-handler";
 import Business from '../models/business.js';
 import cloudinary from '../config/cloudinary.js';
-import path from 'path';
+
+// Helper function for uploading to cloudinary
+const uploadToCloudinary = async (buffer, folder) => {
+  return new Promise((resolve, reject) => {
+    const uploadStream = cloudinary.uploader.upload_stream(
+      { folder },
+      (error, result) => {
+        if (error) return reject(error);
+        resolve(result);
+      }
+    );
+    uploadStream.end(buffer);
+  });
+};
 
 // CREATE
 export const createBusiness = asyncHandler(async (req, res) => {
@@ -86,49 +99,72 @@ export const createBusiness = asyncHandler(async (req, res) => {
 
 // UPDATE
 export const updateBusiness = asyncHandler(async (req, res) => {
-  const businessId = req.params.id;
-  const business = await Business.findById(businessId);
+  try {
+    const businessId = req.params.id;
+    const business = await Business.findById(businessId);
 
-  if (!business) {
-    res.status(404);
-    throw new Error("Business not found");
-  }
+    if (!business) {
+      res.status(404);
+      throw new Error("Business not found");
+    }
 
-  // Replace old mediaFiles with new ones
-  let mediaFiles = [];
-
-  if (req.files && req.files.gallery && req.files.gallery.length > 0) {
-    const galleryFiles = req.files.gallery;
-    for (const file of galleryFiles) {
-      try {
-        const result = await cloudinary.uploader.upload(file.path);
-        mediaFiles.push({
-          fileName: file.originalname || path.basename(file.path),
-          fileUrl: result.secure_url
-        });
-      } catch (error) {
-        console.error("Error uploading to cloudinary:", error);
-        res.status(500);
-        throw new Error("Error uploading files to cloud storage.");
+    // Start with the existing mediaFiles
+    let mediaFiles = business.mediaFiles || [];
+    
+    // Check if we have new files or explicit mediaFiles array
+    const hasNewFiles = req.files && req.files.gallery && req.files.gallery.length > 0;
+    const hasNewMediaFiles = req.body.mediaFiles && Array.isArray(req.body.mediaFiles);
+    
+    // Only replace if we have new files or explicit mediaFiles
+    if (hasNewFiles || hasNewMediaFiles) {
+      // Now we'll replace the existing images
+      mediaFiles = [];
+      
+      // Process new uploaded files
+      if (hasNewFiles) {
+        const galleryFiles = req.files.gallery;
+        for (const file of galleryFiles) {
+          try {
+            const galleryUpload = await uploadToCloudinary(
+              file.buffer,
+              'business/gallery'
+            );
+            mediaFiles.push(galleryUpload.secure_url);
+          } catch (error) {
+            console.error("Error uploading to cloudinary:", error);
+            return res.status(500).json({ message: "Error uploading files to cloud storage." });
+          }
+        }
+      }
+  
+      // Handle mediaFiles if provided as URLs in the request body
+      if (hasNewMediaFiles) {
+        // Replace with the provided URLs
+        mediaFiles = req.body.mediaFiles;
       }
     }
-  } else {
-    // If no gallery files provided, clear existing images
-    mediaFiles = [];
-  }
 
-  const updatedBusiness = await Business.findByIdAndUpdate(
-    businessId,
-    {
+    // Prepare update data
+    const updateData = {
       ...req.body,
-      mediaFiles, // overwrite the mediaFiles array
-    },
-    { new: true }
-  );
+      mediaFiles,
+    };
 
-  res.status(200).json(updatedBusiness);
+    const updatedBusiness = await Business.findByIdAndUpdate(
+      businessId,
+      updateData,
+      { new: true }
+    );
+
+    res.status(200).json({
+      message: "Business updated successfully",
+      business: updatedBusiness
+    });
+  } catch (error) {
+    console.error("Business update error:", error);
+    res.status(400).json({ message: error.message });
+  }
 });
-
 
 // The rest of your controllers remain the same
 export const getBusinesses = asyncHandler(async (req, res) => {
