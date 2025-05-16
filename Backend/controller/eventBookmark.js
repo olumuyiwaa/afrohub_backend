@@ -89,8 +89,9 @@ removeBookmarkedEvent: async (req, res) => {
   } catch (error) {
     res.status(400).json({ message: error.message });
   }
-},
-//update profile
+  },
+
+//update profile now moved to userController.js
  updateProfile: async (req, res) => {
     try {
       const { id } = req.params;
