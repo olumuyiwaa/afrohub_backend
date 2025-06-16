@@ -50,8 +50,7 @@ const eventController = {
     try {
       const { 
         title, location, date, price, category, time, address, latitude, longitude, 
-        organiser, description, unit, paypalUsername, geoTag,
-        regularPrice, regularAvailable, vipPrice, vipAvailable
+        organiser, description, unit, paypalUsername, geoTag
       } = req.body;
 
       // Upload image to Cloudinary if provided
@@ -64,26 +63,10 @@ const eventController = {
         imageUrl = imageUpload.secure_url;
       }
 
-      // Create pricing structure
-      const pricingData = {};
-      if (regularPrice !== undefined && regularAvailable !== undefined) {
-        pricingData.regular = {
-          price: parseFloat(regularPrice),
-          available: parseInt(regularAvailable)
-        };
-      }
-      if (vipPrice !== undefined && vipAvailable !== undefined) {
-        pricingData.vip = {
-          price: parseFloat(vipPrice),
-          available: parseInt(vipAvailable)
-        };
-      }
-
       const event = new Event({
         title, location, date, price, category, time, address, latitude, longitude,
         organiser, description, unit, paypalUsername, geoTag,
-        pricing: pricingData,
-        image: imageUrl
+        image: imageUrl  // Store Cloudinary URL instead of base64
       });
 
       const savedEvent = await event.save();
@@ -130,27 +113,6 @@ const eventController = {
       // Prepare update data
       const updateData = { ...req.body };
 
-      // Handle pricing updates
-      const { regularPrice, regularAvailable, vipPrice, vipAvailable } = req.body;
-      if (regularPrice !== undefined || regularAvailable !== undefined ||
-          vipPrice !== undefined || vipAvailable !== undefined) {
-        updateData.pricing = existingEvent.pricing || {};
-
-        if (regularPrice !== undefined || regularAvailable !== undefined) {
-          updateData.pricing.regular = {
-            price: regularPrice !== undefined ? parseFloat(regularPrice) : existingEvent.pricing?.regular?.price || 0,
-            available: regularAvailable !== undefined ? parseInt(regularAvailable) : existingEvent.pricing?.regular?.available || 0
-          };
-        }
-
-        if (vipPrice !== undefined || vipAvailable !== undefined) {
-          updateData.pricing.vip = {
-            price: vipPrice !== undefined ? parseFloat(vipPrice) : existingEvent.pricing?.vip?.price || 0,
-            available: vipAvailable !== undefined ? parseInt(vipAvailable) : existingEvent.pricing?.vip?.available || 0
-          };
-        }
-      }
-
       // Upload new image to Cloudinary if provided
       if (req.file) {
         const imageUpload = await uploadToCloudinary(
@@ -187,13 +149,19 @@ const eventController = {
         return res.status(404).json({ message: 'Event not found' });
       }
 
+      // Optional: Delete the image from Cloudinary
+      // If you store the Cloudinary public_id, you can delete the image:
+      // if (event.imagePublicId) {
+      //   await cloudinary.uploader.destroy(event.imagePublicId);
+      // }
+
       res.json({ message: 'Event deleted successfully' });
     } catch (error) {
       res.status(500).json({ message: error.message });
     }
   },
 
-  // Get event buyers with ticket type breakdown
+  // Get event buyers
   getEventBuyers: async (req, res) => {
     try {
       const { eventId } = req.params;
@@ -205,42 +173,28 @@ const eventController = {
       }
 
       // Fetch transactions for the specific event
-      const transactions = await Transaction.find({
-        ticketId: eventId,
-        paymentStatus: "paid"
-      }).populate("userId", "email full_name");
+      const transactions = await Transaction.find({ ticketId: eventId, paymentStatus: "paid" })
+        .populate("userId", "email full_name");
 
       if (transactions.length === 0) {
         return res.status(404).json({ message: "No tickets sold for this event" });
       }
 
-      // Calculate totals by ticket type
-      const regularTickets = transactions
-        .filter(t => t.ticketType === 'regular')
-        .reduce((total, transaction) => total + transaction.ticketCount, 0);
-
-      const vipTickets = transactions
-        .filter(t => t.ticketType === 'vip')
-        .reduce((total, transaction) => total + transaction.ticketCount, 0);
-
-      const totalTicketsSold = regularTickets + vipTickets;
+      // Calculate total tickets sold
+      const totalTicketsSold = transactions.reduce((total, transaction) => total + transaction.ticketCount, 0);
 
       // Format the buyers' details
       const buyers = transactions.map((transaction) => ({
         username: transaction.userId.username,
         full_name: transaction.userId.full_name,
         ticketCount: transaction.ticketCount,
-        ticketType: transaction.ticketType,
-        pricePerTicket: transaction.pricePerTicket,
         amount: transaction.amount,
         purchaseDate: transaction.createdAt,
       }));
 
-      // Return response with buyers and ticket breakdown
+      // Return response with buyers and total tickets sold
       res.status(200).json({
         totalTicketsSold,
-        regularTicketsSold: regularTickets,
-        vipTicketsSold: vipTickets,
         buyers,
       });
     } catch (error) {

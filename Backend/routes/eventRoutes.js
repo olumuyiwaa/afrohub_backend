@@ -1,7 +1,8 @@
-import express from 'express';
-import eventController from '../controller/event.js';
+import  express from 'express';
+import  eventController from '../controller/event.js';
 import upload from "../middleware/multer.js"
 const router = express.Router();
+
 
 /**
  * @swagger
@@ -40,7 +41,7 @@ router.get('/:id', eventController.getEventDetails);
  * @swagger
  * /events/{eventId}/buyers:
  *   get:
- *     summary: Get buyers for an event with ticket type breakdown
+ *     summary: Get buyers for an event
  *     tags: [Events]
  *     parameters:
  *       - in: path
@@ -51,39 +52,7 @@ router.get('/:id', eventController.getEventDetails);
  *           type: string
  *     responses:
  *       200:
- *         description: List of event buyers with ticket type details
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 totalTicketsSold:
- *                   type: number
- *                 regularTicketsSold:
- *                   type: number
- *                 vipTicketsSold:
- *                   type: number
- *                 buyers:
- *                   type: array
- *                   items:
- *                     type: object
- *                     properties:
- *                       username:
- *                         type: string
- *                       full_name:
- *                         type: string
- *                       ticketCount:
- *                         type: number
- *                       ticketType:
- *                         type: string
- *                         enum: [regular, vip]
- *                       pricePerTicket:
- *                         type: number
- *                       amount:
- *                         type: number
- *                       purchaseDate:
- *                         type: string
- *                         format: date-time
+ *         description: List of event buyers
  *       404:
  *         description: No tickets sold or event not found
  */
@@ -93,7 +62,7 @@ router.get("/:eventId/buyers", eventController.getEventBuyers);
  * @swagger
  * /events/createvent:
  *   post:
- *     summary: Create a new event with VIP and Regular pricing
+ *     summary: Create a new event
  *     tags: [Events]
  *     consumes:
  *       - multipart/form-data
@@ -115,19 +84,6 @@ router.get("/:eventId/buyers", eventController.getEventBuyers);
  *                 type: string
  *               price:
  *                 type: number
- *                 description: Legacy price field for backward compatibility
- *               regularPrice:
- *                 type: number
- *                 description: Price for regular tickets
- *               regularAvailable:
- *                 type: number
- *                 description: Number of regular tickets available
- *               vipPrice:
- *                 type: number
- *                 description: Price for VIP tickets
- *               vipAvailable:
- *                 type: number
- *                 description: Number of VIP tickets available
  *               category:
  *                 type: string
  *               time:
@@ -158,7 +114,7 @@ router.post('/createvent', upload.single('image'), eventController.createEvent);
  * @swagger
  * /events/{id}:
  *   patch:
- *     summary: Update an event with pricing options
+ *     summary: Update an event
  *     tags: [Events]
  *     parameters:
  *       - in: path
@@ -183,14 +139,6 @@ router.post('/createvent', upload.single('image'), eventController.createEvent);
  *               date:
  *                 type: string
  *               price:
- *                 type: number
- *               regularPrice:
- *                 type: number
- *               regularAvailable:
- *                 type: number
- *               vipPrice:
- *                 type: number
- *               vipAvailable:
  *                 type: number
  *               category:
  *                 type: string
@@ -218,7 +166,7 @@ router.post('/createvent', upload.single('image'), eventController.createEvent);
  *       404:
  *         description: Event not found
  */
-router.patch('/:id', upload.single('image'), eventController.updateEvent);
+router.patch('/:id',upload.single('image'), eventController.updateEvent);
 
 /**
  * @swagger
@@ -240,5 +188,4 @@ router.patch('/:id', upload.single('image'), eventController.updateEvent);
  *         description: Event not found
  */
 router.delete("/:id/delete", eventController.deleteEvent);
-
 export default router;
