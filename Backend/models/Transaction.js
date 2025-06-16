@@ -3,27 +3,27 @@ import mongoose from 'mongoose';
 const transactionSchema = new mongoose.Schema({
     transactionId: {
         type: String,
-       
+
     },
     userId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',
-    
+
     },
     ticketId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Event',
-        
+
     },
     paypalOrderId: {
         type: String,
-      
+
     },
     amount: {
         type: Number,
-        
+
     },
-    stripePaymentIntentId: {  
+    stripePaymentIntentId: {
         type: String
     },
     ticketCount: {
@@ -33,7 +33,7 @@ const transactionSchema = new mongoose.Schema({
     status: {
         type: String,
         enum: ['PENDING', 'COMPLETED', 'FAILED', 'CANCELLED',"PAID"],
-        
+
     },
     paymentDetails: {
         type: Object

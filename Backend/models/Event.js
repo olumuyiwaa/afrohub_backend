@@ -10,7 +10,7 @@ const eventSchema = new mongoose.Schema({
   },
   paypalUsername:String,
   location: String,
- 
+
   date: String,
   price: {
     type:String,
@@ -29,7 +29,7 @@ const eventSchema = new mongoose.Schema({
   },
   organizerPhoto: String,
   QRCodeLink: String
-}, 
+},
 
 {
   timestamps: true

@@ -6,7 +6,7 @@ import { v4 as uuidv4 } from 'uuid';
 const createOrderController = async (req, res) => {
     try {
         const { ticketId, ticketCount } = req.body;
-        const userId = req.user.id; 
+        const userId = req.user.id;
 
         if (!ticketId || !ticketCount) {
             return res.status(400).send('Ticket ID and count are required.');
@@ -110,7 +110,7 @@ const cancelOrderController = async (req, res) => {
 // New endpoint to get payment history
 const getPaymentHistory = async (req, res) => {
     try {
-        const userId = req.user._id; 
+        const userId = req.user._id;
         const transactions = await Transaction.find({ userId })
             .populate('ticketId')
             .sort({ createdAt: -1 });

@@ -188,4 +188,4 @@ router.patch('/:id',upload.single('image'), eventController.updateEvent);
  *         description: Event not found
  */
 router.delete("/:id/delete", eventController.deleteEvent);
-export default router; 
+export default router;

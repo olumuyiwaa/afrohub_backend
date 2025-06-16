@@ -64,7 +64,7 @@ const eventController = {
       }
 
       const event = new Event({
-        title, location, date, price, category, time, address, latitude, longitude, 
+        title, location, date, price, category, time, address, latitude, longitude,
         organiser, description, unit, paypalUsername, geoTag,
         image: imageUrl  // Store Cloudinary URL instead of base64
       });
@@ -103,16 +103,16 @@ const eventController = {
   updateEvent: async (req, res) => {
     try {
       const eventId = req.params.id;
-      
+
       // Find the existing event
       const existingEvent = await Event.findById(eventId);
       if (!existingEvent) {
         return res.status(404).json({ message: 'Event not found' });
       }
-      
+
       // Prepare update data
       const updateData = { ...req.body };
-      
+
       // Upload new image to Cloudinary if provided
       if (req.file) {
         const imageUpload = await uploadToCloudinary(
@@ -121,26 +121,26 @@ const eventController = {
         );
         updateData.image = imageUpload.secure_url;
       }
-      
+
       // Update the event
       const event = await Event.findByIdAndUpdate(
         eventId,
         updateData,
         { new: true }
       );
-      
+
       // Emit event update notification
       req.io.emit("eventUpdated", {
         message: "An event has been updated!",
         event,
       });
-      
+
       res.json(event);
     } catch (error) {
       res.status(400).json({ message: error.message });
     }
   },
-  
+
   // Delete event
   deleteEvent: async (req, res) => {
     try {
@@ -148,13 +148,13 @@ const eventController = {
       if (!event) {
         return res.status(404).json({ message: 'Event not found' });
       }
-      
+
       // Optional: Delete the image from Cloudinary
       // If you store the Cloudinary public_id, you can delete the image:
       // if (event.imagePublicId) {
       //   await cloudinary.uploader.destroy(event.imagePublicId);
       // }
-      
+
       res.json({ message: 'Event deleted successfully' });
     } catch (error) {
       res.status(500).json({ message: error.message });
@@ -165,24 +165,24 @@ const eventController = {
   getEventBuyers: async (req, res) => {
     try {
       const { eventId } = req.params;
-    
+
       // Check if event exists
       const eventExists = await Event.findById(eventId);
       if (!eventExists) {
         return res.status(404).json({ message: "Event not found" });
       }
-    
+
       // Fetch transactions for the specific event
-      const transactions = await Transaction.find({ ticketId: eventId, paymentStatus: "paid" }) 
+      const transactions = await Transaction.find({ ticketId: eventId, paymentStatus: "paid" })
         .populate("userId", "email full_name");
-    
+
       if (transactions.length === 0) {
         return res.status(404).json({ message: "No tickets sold for this event" });
       }
-    
+
       // Calculate total tickets sold
       const totalTicketsSold = transactions.reduce((total, transaction) => total + transaction.ticketCount, 0);
-    
+
       // Format the buyers' details
       const buyers = transactions.map((transaction) => ({
         username: transaction.userId.username,
@@ -191,7 +191,7 @@ const eventController = {
         amount: transaction.amount,
         purchaseDate: transaction.createdAt,
       }));
-    
+
       // Return response with buyers and total tickets sold
       res.status(200).json({
         totalTicketsSold,
